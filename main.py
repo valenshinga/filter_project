@@ -44,7 +44,8 @@ if __name__ == "__main__":
         # Guarda la imagen en disco
         img.write(out_path)
     
-    except:
+    except Exception as e:
+        print (e)
         print("Error, parametros pasados de manera incorrecta")
         print_help()
 

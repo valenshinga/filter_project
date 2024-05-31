@@ -19,7 +19,29 @@ def contraste(img, intensidad):
             img[i,j] = colorContrastado
     return img
 
-### Aca tienen que crea una funcion por cada filtro a programar
-### Luego los agregan al diccionario de filtros junto con su nombre
-filtros = {"plano": plano, "contraste": contraste}
+def blurred(img, porcentaje):
+    # Calcular el número de iteraciones basado en el porcentaje
+    intensidad = max(1, (int(porcentaje) * 10) // 100)  # 1 a 10 iteraciones
+    for repetir in range(intensidad):
+        for i in range(1, img.width - 1):
+            for j in range(1, img.height - 1):
+                # Sumar los valores de los píxeles vecinos
+                r_total = g_total = b_total = 0
+                for k in range(-1, 1 + 1):
+                    for l in range(-1, 1 + 1):
+                        r, g, b = img[i + k, j + l]
+                        r_total += r
+                        g_total += g
+                        b_total += b
+                # Calcular el promedio
+                r_avg = r_total // 9
+                g_avg = g_total // 9
+                b_avg = b_total // 9
+                
+                # Establecer el valor del píxel en la imagen desenfocada
+                img[i, j] = (r_avg, g_avg, b_avg)
+    
+    return img
+
+filtros = {"plano": plano, "contraste": contraste, "blurred": blurred}
 filtros_paralelos = {}

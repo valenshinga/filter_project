@@ -31,10 +31,10 @@ if __name__ == "__main__":
         
         # Dependiendo de los parametros, ejecuta el filtro indicado
         if n_workers > 1:
-            if p is None:
-                filtros_paralelos[filtro](img)
+            if p is None: #No se estaban pasando los n_workers a las funciones
+                filtros_paralelos[filtro](img, n_workers)
             else:
-                filtros_paralelos[filtro](img, p)
+                filtros_paralelos[filtro](img, n_workers, p)
         else:
             if p is None:
                 filtros[filtro](img)
@@ -44,7 +44,8 @@ if __name__ == "__main__":
         # Guarda la imagen en disco
         img.write(out_path)
     
-    except:
+    except Exception as e:
+        print (e)
         print("Error, parametros pasados de manera incorrecta")
         print_help()
 

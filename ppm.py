@@ -1,5 +1,6 @@
-from PIL import Image 
+from PIL import Image, ImageFile
 
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 class PPM:
     @classmethod
     def empty_PPM(cls):

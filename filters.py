@@ -106,5 +106,79 @@ def blurred_paralelo(img, cantThreads, porcentaje):
 
     return img
 
-filtros = {"plano": plano, "contraste": contraste, "blurred": blurred}
-filtros_paralelos = {"contraste": contraste_paralelo, "blurred": blurred_paralelo}
+def black_and_white(img):
+    for i in range(img.width):      
+        for j in range(img.height): 
+            r,g,b = img[i,j]     
+            gris = (r+g+b) // 3 
+            img[i, j] = (gris,gris,gris) 
+    return img
+
+def shades(img, rango):
+    rango = 255 // (int(rango) - 1)
+
+    for i in range(img.width):
+        for j in range(img.height):
+            r, g, b = img[i, j]
+            gris_aux = (r + g + b) // 3
+            gris = (gris_aux // rango) * rango
+            img[i, j] = (gris, gris, gris)
+
+    return img
+
+def black_and_white_paralelo(img, cantThreads):
+    threads = []
+    cantThreads = int(cantThreads)
+    zona = img.width // cantThreads
+
+    def aplicar_bw_parcial(img, desde, fin):
+        for i in range(desde, fin):      
+            for j in range(img.height): 
+                r, g, b = img[i, j]     
+                gris = (r + g + b) // 3 
+                img[i, j] = (gris, gris, gris)
+
+    for i in range(cantThreads):
+        desde = i * zona
+        fin = (i + 1) * zona if i < cantThreads - 1 else img.width
+        thread = threading.Thread(target=aplicar_bw_parcial, args=(img, desde, fin))
+        time.sleep(1)
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    return img
+
+
+def shades_paralelo(img, cantThreads, rango):
+    rango = 255 // (int(rango) - 1)
+    threads = []
+    cantThreads = int(cantThreads)
+    zona = img.width // cantThreads
+
+    def aplicar_shade_parcial(img, desde, hasta, rango):
+        for i in range(desde, hasta):
+            for j in range(img.height):
+                r, g, b = img[i, j]
+                gris_aux = (r + g + b) // 3
+                gris = (gris_aux // rango) * rango
+                img[i, j] = (gris, gris, gris)
+
+    for i in range(cantThreads):
+        desde = i * zona
+        hasta = (i + 1) * zona if i < cantThreads - 1 else img.width
+        thread = threading.Thread(target=aplicar_shade_parcial, args=(img, desde, hasta, rango))
+        time.sleep(1)
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    return img
+
+
+filtros = {"plano": plano, "contraste": contraste, "blurred": blurred, "blancoNegro": black_and_white, "sombras": shades}
+filtros_paralelos = {"contraste": contraste_paralelo, "blurred": blurred_paralelo, "blancoNegro": black_and_white_paralelo, "sombras": shades_paralelo}

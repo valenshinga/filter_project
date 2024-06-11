@@ -1,5 +1,6 @@
 import threading
 import time
+from math import sqrt 
 
 ### En este archivo van a programar todos los filtros del TP
 ### A modo de ejemplo les dejo un filtro que dado un color deja toda la imagen de ese color
@@ -179,6 +180,112 @@ def shades_paralelo(img, cantThreads, rango):
 
     return img
 
+def sobel(img, blur_percentage):
+    shades(img, 256) 
+    blurred(img, blur_percentage)
+    
+    Kx = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+    Ky = [[1, 2, 1], [0, 0, 0], [-1, -2, -1]]
 
-filtros = {"plano": plano, "contraste": contraste, "blurred": blurred, "blancoNegro": black_and_white, "sombras": shades}
-filtros_paralelos = {"contraste": contraste_paralelo, "blurred": blurred_paralelo, "blancoNegro": black_and_white_paralelo, "sombras": shades_paralelo}
+    width, height = img.width, img.height
+    original_pixels = [[img[i, j] for j in range(height)] for i in range(width)]  
+
+    for y in range(1, height - 1):
+        for x in range(1, width - 1):
+            Gx = Gy = 0
+            for j in range(3):
+                for i in range(3):
+                    pixel = original_pixels[x + i - 1][y + j - 1][0]
+                    Gx += pixel * Kx[j][i]
+                    Gy += pixel * Ky[j][i]
+            G = min(255, int(sqrt(Gx**2 + Gy**2)))
+            img[x, y] = (G, G, G)
+
+    return img
+
+def sobel_paralelo(img, cantThreads, blur_percentage):
+    cantThreads = int(cantThreads)
+    shades(img, 256)
+    blurred(img, blur_percentage)
+
+    Kx = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+    Ky = [[1, 2, 1], [0, 0, 0], [-1, -2, -1]]
+
+    width, height = img.width, img.height
+    original_pixels = [[img[i, j] for j in range(height)] for i in range(width)]
+
+    zona = (height - 2) // cantThreads
+    threads = []
+
+    def aplicar_sobel_parcial(img, desde, fin):
+        for y in range(desde, fin):
+            for x in range(1, width - 1):
+                Gx = Gy = 0
+                for j in range(3):
+                    for i in range(3):
+                        pixel = original_pixels[x + i - 1][y + j - 1][0]
+                        Gx += pixel * Kx[j][i]
+                        Gy += pixel * Ky[j][i]
+                G = min(255, int(sqrt(Gx**2 + Gy**2)))
+                img[x, y] = (G, G, G)
+
+    for i in range(cantThreads):
+        desde = 1 + i * zona
+        fin = 1 + (i + 1) * zona if i < cantThreads - 1 else height - 1
+        thread = threading.Thread(target=aplicar_sobel_parcial, args=(img, desde, fin))
+        time.sleep(1)
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    return img
+
+def brightness(img, factor):
+    factor = float(factor)  
+    for i in range(img.width): 
+        for j in range(img.height):  
+            r, g, b = img[i, j]
+            r = int(r + 255 * factor)
+            g = int(g + 255 * factor)
+            b = int(b + 255 * factor)
+            r = max(0, min(255, r))
+            g = max(0, min(255, g))
+            b = max(0, min(255, b))
+            img[i, j] = (r, g, b)
+    return img
+
+def brightness_paralelo(img, cantThreads, factor):
+    cantThreads = int(cantThreads)
+    factor = float(factor)
+    zona = img.width // cantThreads
+    threads = []
+
+    def aplicar_brightness_parcial(img, desde, fin, factor):
+        for i in range(desde, fin):
+            for j in range(img.height):
+                r, g, b = img[i, j]
+                r = int(r + 255 * factor)
+                g = int(g + 255 * factor)
+                b = int(b + 255 * factor)
+                r = max(0, min(255, r))
+                g = max(0, min(255, g))
+                b = max(0, min(255, b))
+                img[i, j] = (r, g, b)
+
+    for i in range(cantThreads):
+        desde = i * zona
+        fin = (i + 1) * zona if i < cantThreads - 1 else img.width
+        thread = threading.Thread(target=aplicar_brightness_parcial, args=(img, desde, fin, factor))
+        time.sleep(1)
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    return img
+
+filtros = {"plano": plano, "contraste": contraste, "blurred": blurred, "blancoNegro": black_and_white, "sombras": shades, "sobel": sobel, "brightness": brightness }
+filtros_paralelos = {"contraste": contraste_paralelo, "blurred": blurred_paralelo, "blancoNegro": black_and_white_paralelo, "sombras": shades_paralelo, "sobel": sobel_paralelo, "brightness": brightness_paralelo}
